@@ -11,6 +11,22 @@ LINT_ANNOTATION = "// swiftlint:disable:next ui_color\n"
 regex = re.compile(TARGET_REGEX)
 exclude_regex = re.compile(COMMENT_REGEX)
 
+basePath = "/Users/sophialee/Documents/GitHub/tinder_ios"
+exclude_paths = [
+"/Projects/Modules/Domain/Connections/",
+"/Projects/Modules/Service/Events/",
+"/Projects/Tinder/Tinder/Instrumentation",
+"/Projects/Modules/Domain/Boost/",
+"/Projects/Modules/Domain/Paywall/",
+"/Projects/Modules/Domain/Revenue/",
+"/Projects/Modules/Domain/Collectibles/",
+"/Projects/Modules/Service/PurchaseService/",
+"/Projects/Modules/Domain/Dionysus/",
+"/Projects/Modules/Domain/Onboarding/",
+"/Projects/Modules/Domain/Referral/",
+"/Projects/Modules/Domain/International/"
+]
+
 
 def process_file(path):
     # print('Processing {}'.format(path))
@@ -43,6 +59,12 @@ def process_file(path):
             file.truncate()
 
 
+def should_exclude(path):
+    for list in exclude_paths:
+        if list in path:
+            return True
+    return False
+
 def parse_directory(path, recursive=True):
     # print('Parsing {}'.format(path))
 
@@ -50,6 +72,9 @@ def parse_directory(path, recursive=True):
     for root, dirs, files in os.walk(path):
         for file in files:
             file_path = os.path.join(root, file)
+            if shouldExclude(file_path):
+                continue
+
             if os.path.splitext(file)[-1] == '.swift':
                 process_file(file_path)
                 result.add(file_path)
@@ -70,7 +95,7 @@ def main():
     # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Modules/Domain/DomainReusable/Source/Descriptors/DescriptorView'
     # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Modules/Domain'
     # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Examples/ObsidianTUIKit/Source'
-    path = '/Users/sophialee/Documents/GitHub/tinder_ios/'
+    path = '/Users/sophialee/Documents/GitHub/tinder_ios'
     # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Tinder/Tinder/Instrumentation/DevTools/AnalyticsViewer/AnalyticsDebugView/'
     # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Modules/Service/PurchaseService/'
 
