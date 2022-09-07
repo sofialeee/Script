@@ -4,7 +4,7 @@ import pprint
 import re
 import sys
 
-REGEX_PATTERN = r"UIColor = (\.|{)|fromHex"  #r".*UIColor = \..*"
+REGEX_PATTERN = r"(UIColor = (\.|{))|fromHex|UIColor.[a-z]"
 LINT_ANNOTATION = "// swiftlint:disable:next ui_color\n"
 
 regex = re.compile(REGEX_PATTERN)
@@ -65,10 +65,10 @@ def parse_directory(path, recursive=True):
 def main():
 
     # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Modules/Domain/DomainReusable/Source/Descriptors/DescriptorView'
-    path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Modules/Domain'
+    # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Modules/Domain'
     # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Examples/ObsidianTUIKit/Source'
     # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Examples'
-    # path = '/Users/sophialee/Documents/GitHub/tinder_ios'
+    path = '/Users/sophialee/Documents/GitHub/tinder_ios'
 
     # path = argv[1]
     swift_files = parse_directory(path)  
