@@ -4,10 +4,12 @@ import pprint
 import re
 import sys
 
-REGEX_PATTERN = r"(UIColor = (\.|{))|fromHex|UIColor.[a-z]"
+TARGET_REGEX = r"fromHex|UIColor\.[a-z]|UIColor = \."
+COMMENT_REGEX = r"^[ ]*(\/\/|\/\*|\*\/)"
 LINT_ANNOTATION = "// swiftlint:disable:next ui_color\n"
 
-regex = re.compile(REGEX_PATTERN)
+regex = re.compile(TARGET_REGEX)
+exclude_regex = re.compile(COMMENT_REGEX)
 
 
 def process_file(path):
@@ -17,21 +19,22 @@ def process_file(path):
     indentation = 0
     lines = []
     with open(path, 'r+') as file:
+
+        previousLine = ""
         for line in file:
-            if skip_annotated:
-                # Skip linter annotated line
-                skip_annotated = False
-                lines.append(line)
-                continue
-            else:
-                if LINT_ANNOTATION in line:
-                    skip_annotated = True
-                if regex.search(line):
-                    # print('found {}'.format(line))
+            if exclude_regex.search(line):
+               pass
+            elif regex.search(line):
+                # print('found {}'.format(line))
+                if LINT_ANNOTATION in previousLine:
+                    pass
+                else:                    
                     found_hexcode = True
                     indentation = len(line) - len(line.lstrip())
                     lines.append(' ' * indentation + LINT_ANNOTATION)
-                lines.append(line)
+
+            lines.append(line)
+            previousLine = line
 
         # Only rewrite if hexcode is found, i.e. lint annotation needed
         if found_hexcode:
@@ -67,10 +70,10 @@ def main():
     # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Modules/Domain/DomainReusable/Source/Descriptors/DescriptorView'
     # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Modules/Domain'
     # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Examples/ObsidianTUIKit/Source'
-    # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Examples'
-    path = '/Users/sophialee/Documents/GitHub/tinder_ios'
+    path = '/Users/sophialee/Documents/GitHub/tinder_ios/'
+    # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Tinder/Tinder/Instrumentation/DevTools/AnalyticsViewer/AnalyticsDebugView/'
+    # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Modules/Service/PurchaseService/'
 
-    # path = argv[1]
     swift_files = parse_directory(path)  
     # pprint.pprint(swift_files)
     pprint.pprint("Completed!")  
