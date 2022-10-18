@@ -1,0 +1,178 @@
+#!/usr/bin/python3
+import os
+import pprint
+import re
+import sys
+
+#TARGET_REGEX = r"fromHex|UIColor\.[a-z]|UIColor = \."
+TARGET_REGEX = r'(\.init|UIColor)\(fromHex: "#?([0-9a-fA-F]+)"\)'
+COMMENT_REGEX = r"^[ ]*(\/\/|\/\*|\*\/)"
+LINT_ANNOTATION = "// swiftlint:disable:next ui_color\n"
+
+regex = re.compile(TARGET_REGEX)
+exclude_regex = re.compile(COMMENT_REGEX)
+
+dict = {
+    "000000"   :".black",
+    "ABD9FF"   :".blue20",
+    "1786FF"   :".blue50",
+    "106BD5"   :".blue60",
+    "FF6036"   :".brandGradientEnd",
+    "FD267A"   :".brandGradientStart",
+    "FF4458"   :".brandPrimary",
+    "D6002F"   :".brandPrimaryA11y",
+    "FFD4FF"   :".fuchsia15",
+    "FA93FB"   :".fuchsia30",
+    "E010CD"   :".fuchsia50",
+    "FFF2BF"   :".gold10",
+    "FFE8A5"   :".gold15",
+    "F7D472"   :".gold20",
+    "E6AF16"   :".gold30",
+    "AE830C"   :".gold50",
+    "896707"   :".gold60",
+    "F0F2F4"   :".gray10",
+    "E9EBEE"   :".gray15",
+    "E9EBEE"   :".gray15",
+    "D4D8DE"   :".gray20",
+    "b9bfc8"   :".gray30",
+    "939BA7"   :".gray40",
+    "7C8591"   :".gray50",
+    "656E7B"   :".gray60",
+    "505965"   :".gray70",
+    "3C444F"   :".gray80",
+    "21262E"   :".gray90",
+    "111418"   :".gray95",
+    "129E68"   :".green50",
+    "F6DCFF"   :".purple15",
+    "CC7AFB"   :".purple40",
+    "BA52F5"   :".purple50",
+    "9908E8"   :".purple60",
+    "7B05BA"   :".purple70",
+    "F13B2D"   :".red50",
+    "C62C1E"   :".red60",
+    "30F3EF"   :".teal20",
+    "26D1D2"   :".teal30",
+    "199A9F"   :".teal50",
+    "FFFFFF"   :".white",
+}
+
+matchCount = 0 
+dictMatchCount = 0
+basePath = "/Users/sophialee/Documents/GitHub/tinder_ios"
+exclude_paths = [
+# "/Projects/Modules/Domain/Connections/",
+# "/Projects/Modules/Service/Events/",
+# "/Projects/Tinder/Tinder/Instrumentation",
+# "/Projects/Modules/Domain/Boost/",
+# "/Projects/Modules/Domain/Paywall/",
+# "/Projects/Modules/Domain/Revenue/",
+# "/Projects/Modules/Domain/Collectibles/",
+# "/Projects/Modules/Service/PurchaseService/",
+# "/Projects/Modules/Domain/Dionysus/",
+# "/Projects/Modules/Domain/Onboarding/",
+# "/Projects/Modules/Domain/Referral/",
+# "/Projects/Modules/Domain/International/"
+]
+
+
+def process_file(path):
+    global matchCount
+
+    # print('Processing {}'.format(path))
+    skip_annotated = False
+    indentation = 0
+    lines = []
+    found_token = False
+    with open(path, 'r+') as file:
+
+        for line in file:
+            has_hex = regex.search(line)
+            if has_hex:
+                matchCount += 1
+                # print('match regex: {}'.format(has_hex))
+                token = getNewLine(has_hex.group(2),line)
+
+                if token:
+                    found_token = True
+                    previousLine = lines[-1]
+                    if LINT_ANNOTATION in previousLine:
+                        # remove the lint comment
+                        lines.pop()
+
+                    # print('---ori line:{}'.format(line))
+                    newCode = 'TUI.shared.currentColor({})'.format(token)
+
+                    new_line = regex.sub(newCode, line)
+                    # print('===new line:{}'.format(new_line))
+                    lines.append(new_line)
+                    continue
+
+            lines.append(line)
+
+
+        # Only rewrite if hexcode is found and there's a token match
+        if found_token:
+            file.seek(0)
+            file.writelines(lines)
+            file.truncate()
+
+def getNewLine(oldHex,line):
+    global dictMatchCount
+    # print('here:{}'.format(oldHex))
+    cleanedHex = oldHex
+
+    val = dict.get(cleanedHex)
+    if val:
+        dictMatchCount = dictMatchCount + 1
+        # print('found value in dict!{}'.format(val))
+        return val
+    return None
+
+def should_exclude(path):
+    for list in exclude_paths:
+        if list in path:
+            return True
+    return False
+
+def parse_directory(path, recursive=True):
+    # print('Parsing {}'.format(path))
+
+    result = set()
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            if should_exclude(file_path):
+                continue
+
+            if os.path.splitext(file)[-1] == '.swift':
+                process_file(file_path)
+                result.add(file_path)
+
+        if recursive:
+            # Recursively walk directories
+            for dir in dirs:
+                dir_path = os.path.join(root, dir)
+                if not os.path.islink(dir_path):
+                    result.union(parse_directory(dir_path))
+                # else:
+                #     print("{} is a sym link".format(dir_path))
+
+    return result
+        
+def main():
+
+# /Projects/Modules/Service/Events/ @TinderApp/instrumentation-platform-ios
+# /Projects/Tinder/Tinder/Instrumentation @TinderApp/instrumentation-platform-ios
+# /Projects/Modules/Service/Services/Source/Services/ReachabilityProtocols.swift @TinderApp/instrumentation-platform-ios
+    path = '/Users/sophialee/Documents/GitHub/tinder_ios/'
+
+    # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Examples/ObsidianTUIKit/Source'
+    # path = '/Users/sophialee/Documents/GitHub/tinder_ios'
+    # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Tinder/Tinder/Instrumentation/DevTools/AnalyticsViewer/AnalyticsDebugView/'
+    # path = '/Users/sophialee/Documents/GitHub/tinder_ios/Projects/Modules/Service/TinderKit/Source/TUI/'
+
+    swift_files = parse_directory(path)  
+    print("Completed! token count/total Hex count:{}/{}".format(dictMatchCount, matchCount)) 
+
+if __name__ == '__main__':
+    main()
